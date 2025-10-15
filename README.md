@@ -225,6 +225,20 @@ hono serve --use 'basicAuth({username:"foo", password:"bar"})' --use "serveStati
 hono serve -p 8080 --show-routes --use 'cors()' --use 'logger()' src/app.ts
 ```
 
+## Tips
+
+### Pipeline Integration with jq
+
+The `search` command outputs JSON by default, making it easy to pipe results to other commands:
+
+```bash
+# Search and view documentation in one command
+hono search "middleware" | jq '.results[0].path' | hono docs
+
+# Pretty output for human reading
+hono search "middleware" --pretty
+```
+
 ## Authors
 
 - Yusuke Wada https://github.com/yusukebe
