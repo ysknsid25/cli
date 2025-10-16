@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { docsCommand } from './commands/docs/index.js'
+import { optimizeCommand } from './commands/optimize/index.js'
 import { requestCommand } from './commands/request/index.js'
 import { searchCommand } from './commands/search/index.js'
 import { serveCommand } from './commands/serve/index.js'
@@ -22,6 +23,7 @@ program
 
 // Register commands
 docsCommand(program)
+optimizeCommand(program)
 searchCommand(program)
 requestCommand(program)
 serveCommand(program)

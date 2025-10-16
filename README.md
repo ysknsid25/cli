@@ -25,6 +25,9 @@ hono request
 
 # Start server
 hono serve
+
+# Generate an optimized Hono app
+hono optimize
 ```
 
 ## Commands
@@ -33,6 +36,7 @@ hono serve
 - `search <query>` - Search Hono documentation
 - `request [file]` - Send request to Hono app using `app.request()`
 - `serve [entry]` - Start server for Hono app
+- `optimize [entry]` - Generate an optimized Hono app
 
 ### `docs`
 
@@ -229,6 +233,35 @@ hono serve --use 'cors()' --use 'logger()' src/app.ts
 hono serve \
   --use 'basicAuth({ username: "foo", password: "bar" })' \
   --use "serveStatic({ root: './' })"
+```
+
+### `optimize`
+
+Generate an optimized Hono class and export bundled file.
+
+```bash
+hono optimize [entry] [options]
+```
+
+**Arguments:**
+
+- `entry` - Entry file for your Hono app (TypeScript/JSX supported, optional)
+
+**Options:**
+
+- `-o, --outfile <outfile>` - Output file
+
+**Examples:**
+
+```bash
+# Generate an optimized Hono class and export bundled file to dist/index.js
+hono optimize
+
+# Specify entry file and output file
+hono optimize -o dist/app.js src/app.ts
+
+# Export bundled file with minification
+hono optimize -m
 ```
 
 ## Tips
