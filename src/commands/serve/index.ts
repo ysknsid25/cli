@@ -40,7 +40,7 @@ export function serveCommand(program: Command) {
     .action(
       async (
         entry: string | undefined,
-        options: { port: number; showRoutes?: boolean; use?: string[] }
+        options: { port?: number; showRoutes?: boolean; use?: string[] }
       ) => {
         let app: Hono
 
