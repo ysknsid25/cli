@@ -6,9 +6,9 @@ import { buildAndImportApp } from '../../utils/build.js'
 
 const DEFAULT_ENTRY_CANDIDATES = ['src/index.ts', 'src/index.tsx', 'src/index.js', 'src/index.jsx']
 
-const VALID_HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const
+const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'] as const
 
-type HttpMethod = (typeof VALID_HTTP_METHODS)[number]
+type HttpMethod = (typeof HTTP_METHODS)[number]
 
 interface RequestOptions {
   method?: HttpMethod
@@ -25,7 +25,7 @@ export function requestCommand(program: Command) {
     .option('-P, --path <path>', 'Request path', '/')
     .option('-X, --method <method>', 'HTTP method', (value: string) => {
       const method = value.toUpperCase()
-      if (!VALID_HTTP_METHODS.includes(method as HttpMethod)) {
+      if (!HTTP_METHODS.includes(method as HttpMethod)) {
         throw new Error(`Invalid HTTP method: ${value}`)
       }
       return method as HttpMethod
