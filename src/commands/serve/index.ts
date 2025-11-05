@@ -20,7 +20,14 @@ export function serveCommand(program: Command) {
     .command('serve')
     .description('Start server')
     .argument('[entry]', 'entry file')
-    .option('-p, --port <port>', 'port number')
+    .option('-p, --port <port>', 'port number', (value) => {
+      const parsed = parseInt(value, 10)
+      if (isNaN(parsed) || parsed < 1024 || parsed > 65535) {
+        console.warn('Port must be a number between 1024 and 65535. Using default port 7070.\n')
+        return 7070
+      }
+      return parsed
+    })
     .option('--show-routes', 'show registered routes')
     .option(
       '--use <middleware>',
@@ -33,7 +40,7 @@ export function serveCommand(program: Command) {
     .action(
       async (
         entry: string | undefined,
-        options: { port?: string; showRoutes?: boolean; use?: string[] }
+        options: { port: number; showRoutes?: boolean; use?: string[] }
       ) => {
         let app: Hono
 
@@ -94,7 +101,7 @@ export function serveCommand(program: Command) {
         serve(
           {
             fetch: baseApp.fetch,
-            port: options.port ? Number.parseInt(options.port) : 7070,
+            port: options.port || 7070,
           },
           (info) => {
             console.log(`Listening on http://localhost:${info.port}`)

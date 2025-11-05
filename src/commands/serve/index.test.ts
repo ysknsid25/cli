@@ -256,4 +256,34 @@ describe('serveCommand', () => {
     expect(unknownResponse.status).toBe(404)
     expect(await unknownResponse.text()).toBe('API endpoint not found')
   })
+
+  describe('port validation', () => {
+    it.each(['80', '65536', 'invalid'])(
+      'should warn and use default port when port is %s',
+      async (port) => {
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+        mockModules.existsSync.mockReturnValue(false)
+        mockModules.resolve.mockImplementation((cwd: string, path: string) => {
+          return `${cwd}/${path}`
+        })
+
+        await program.parseAsync(['node', 'test', 'serve', '-p', port])
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          'Port must be a number between 1024 and 65535. Using default port 7070.\n'
+        )
+
+        expect(mockServe).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetch: expect.any(Function),
+            port: 7070,
+          }),
+          expect.any(Function)
+        )
+
+        consoleWarnSpy.mockRestore()
+      }
+    )
+  })
 })
