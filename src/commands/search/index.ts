@@ -43,7 +43,7 @@ export function searchCommand(program: Command) {
     })
     .option('-p, --pretty', 'Display results in human-readable format')
     .description('Search Hono documentation')
-    .action(async (query: string, options: { limit: number; pretty?: boolean }) => {
+    .action(async (query: string, options: { limit?: number; pretty?: boolean }) => {
       // Search-only API key - safe to embed in public code
       const ALGOLIA_APP_ID = '1GIFSU1REV'
       const ALGOLIA_API_KEY = 'c6a0f86b9a9f8551654600f28317a9e9'
