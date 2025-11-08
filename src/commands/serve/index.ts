@@ -22,8 +22,8 @@ export function serveCommand(program: Command) {
     .argument('[entry]', 'entry file')
     .option('-p, --port <port>', 'port number', (value) => {
       const parsed = parseInt(value, 10)
-      if (isNaN(parsed) || parsed < 1024 || parsed > 65535) {
-        console.warn('Port must be a number between 1024 and 65535. Using default port 7070.\n')
+      if (isNaN(parsed) || parsed < 0 || parsed > 65535) {
+        console.warn('Port must be a number between 0 and 65535. Using default port 7070.\n')
         return 7070
       }
       return parsed

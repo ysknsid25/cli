@@ -258,7 +258,7 @@ describe('serveCommand', () => {
   })
 
   describe('port validation', () => {
-    it.each(['80', '65536', 'invalid'])(
+    it.each(['-1', '65536', 'invalid'])(
       'should warn and use default port when port is %s',
       async (port) => {
         const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -271,7 +271,7 @@ describe('serveCommand', () => {
         await program.parseAsync(['node', 'test', 'serve', '-p', port])
 
         expect(consoleWarnSpy).toHaveBeenCalledWith(
-          'Port must be a number between 1024 and 65535. Using default port 7070.\n'
+          'Port must be a number between 0 and 65535. Using default port 7070.\n'
         )
 
         expect(mockServe).toHaveBeenCalledWith(
