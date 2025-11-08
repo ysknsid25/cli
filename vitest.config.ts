@@ -5,5 +5,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: ['src/commands/serve/builtin-map.ts', `**.config.*`, `dist/**`],
+    },
   },
 })
