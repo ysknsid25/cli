@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     strategy:
       matrix:
         node-version: [20, 22, 24]
@@ -24,7 +27,12 @@ jobs:
         run: bun install
 
       - name: Run tests
-        run: bun run test:run
+        run: bun run test:cov
+
+      - name: 'Report Coverage'
+        uses: davelosert/vitest-coverage-report-action@v2
+        with:
+          json-summary-path: coverage/coverage-summary.json
 
       - name: Build
         run: bun run build
