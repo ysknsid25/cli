@@ -42,6 +42,11 @@ describe('serveCommand', () => {
     mockServe = vi.mocked((await import('@hono/node-server')).serve)
     mockShowRoutes = vi.mocked((await import('hono/dev')).showRoutes)
 
+    mockModules = {
+      existsSync: vi.fn(),
+      resolve: vi.fn(),
+    }
+
     // Capture the fetch function passed to serve
     mockServe.mockImplementation((options: any, callback?: any) => {
       capturedFetchFunction = options.fetch
