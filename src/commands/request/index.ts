@@ -2,6 +2,7 @@ import type { Command } from 'commander'
 import type { Hono } from 'hono'
 import { existsSync, realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
+import type { JSONData } from '../../types/branded-types.js'
 import { buildAndImportApp } from '../../utils/build.js'
 
 const DEFAULT_ENTRY_CANDIDATES = ['src/index.ts', 'src/index.tsx', 'src/index.js', 'src/index.jsx']
@@ -12,6 +13,7 @@ interface RequestOptions {
   header?: string[]
   path?: string
   watch: boolean
+  exclude: boolean
 }
 
 export function requestCommand(program: Command) {
@@ -23,6 +25,7 @@ export function requestCommand(program: Command) {
     .option('-X, --method <method>', 'HTTP method', 'GET')
     .option('-d, --data <data>', 'Request body data')
     .option('-w, --watch', 'Watch for changes and resend request', false)
+    .option('-e, --exclude', 'Exclude protocol response headers in the output', false)
     .option(
       '-H, --header <header>',
       'Custom headers',
@@ -37,7 +40,23 @@ export function requestCommand(program: Command) {
       const buildIterator = getBuildIterator(file, watch)
       for await (const app of buildIterator) {
         const result = await executeRequest(app, path, options)
-        console.log(JSON.stringify(result, null, 2))
+        const outputBody = parsedResponseBody(result.body)
+        const buffer = await result.response.clone().arrayBuffer()
+        if (isBinaryResponse(buffer)) {
+          console.warn('Binary output can mess up your terminal.')
+          return
+        }
+        if (options.exclude) {
+          console.log(outputBody)
+        } else {
+          console.log(
+            JSON.stringify(
+              { status: result.status, body: outputBody, headers: result.headers },
+              null,
+              2
+            )
+          )
+        }
       }
     })
 }
@@ -77,7 +96,7 @@ export async function executeRequest(
   app: Hono,
   requestPath: string,
   options: RequestOptions
-): Promise<{ status: number; body: string; headers: Record<string, string> }> {
+): Promise<{ status: number; body: string; headers: Record<string, string>; response: Response }> {
   // Build request
   const url = new URL(requestPath, 'http://localhost')
   const requestInit: RequestInit = {
@@ -111,11 +130,31 @@ export async function executeRequest(
     responseHeaders[key] = value
   })
 
-  const body = await response.text()
+  const body = await response.clone().text()
 
   return {
     status: response.status,
     body,
     headers: responseHeaders,
+    response: response,
   }
+}
+
+const parsedResponseBody = (responseBody: string): JSONData | string => {
+  try {
+    return JSON.stringify(JSON.parse(responseBody), null, 2) as JSONData
+  } catch {
+    return responseBody
+  }
+}
+
+const isBinaryResponse = (buffer: ArrayBuffer): boolean => {
+  const view = new Uint8Array(buffer)
+  const len = Math.min(view.length, 2000)
+  for (let i = 0; i < len; i++) {
+    if (view[i] === 0) {
+      return true
+    }
+  }
+  return false
 }
