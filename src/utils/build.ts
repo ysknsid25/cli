@@ -1,10 +1,12 @@
 import * as esbuild from 'esbuild'
+import type { Plugin } from 'esbuild'
 import type { Hono } from 'hono'
 
 export interface BuildOptions {
   external?: string[]
   watch?: boolean
   sourcemap?: boolean
+  plugins?: Plugin[]
 }
 
 /**
@@ -72,6 +74,7 @@ export async function* buildAndImportApp(
           })
         },
       },
+      ...(options.plugins || []),
     ],
   })
 
