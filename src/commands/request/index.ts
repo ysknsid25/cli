@@ -3,6 +3,7 @@ import type { Hono } from 'hono'
 import { existsSync, realpathSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { buildAndImportApp } from '../../utils/build.js'
+import { getFilenameFromPath, saveFile } from '../../utils/file.js'
 
 const DEFAULT_ENTRY_CANDIDATES = ['src/index.ts', 'src/index.tsx', 'src/index.js', 'src/index.jsx']
 
@@ -13,6 +14,8 @@ interface RequestOptions {
   path?: string
   watch: boolean
   exclude: boolean
+  output?: string
+  remoteName: boolean
 }
 
 export function requestCommand(program: Command) {
@@ -33,7 +36,10 @@ export function requestCommand(program: Command) {
       },
       [] as string[]
     )
+    .option('-o, --output <file>', 'Write to file instead of stdout')
+    .option('-O, --remote-name', 'Write output to file named as remote file', false)
     .action(async (file: string | undefined, options: RequestOptions) => {
+      const doSaveFile = options.output || options.remoteName
       const path = options.path || '/'
       const watch = options.watch
       const buildIterator = getBuildIterator(file, watch)
@@ -45,23 +51,71 @@ export function requestCommand(program: Command) {
           options.exclude
         )
         const buffer = await result.response.clone().arrayBuffer()
-        if (isBinaryResponse(buffer)) {
+        const isBinaryData = isBinaryResponse(buffer)
+        if (isBinaryData && !doSaveFile) {
           console.warn('Binary output can mess up your terminal.')
           return
         }
-        if (options.exclude) {
-          console.log(outputBody)
-        } else {
-          console.log(
-            JSON.stringify(
-              { status: result.status, body: outputBody, headers: result.headers },
-              null,
-              2
-            )
-          )
+
+        const outputData = getOutputData(
+          buffer,
+          outputBody,
+          isBinaryData,
+          options,
+          result.status,
+          result.headers
+        )
+        if (!isBinaryData) {
+          console.log(outputData)
+        }
+
+        if (doSaveFile) {
+          await handleSaveOutput(outputData, path, options)
         }
       }
     })
+}
+
+function getOutputData(
+  buffer: ArrayBuffer,
+  outputBody: string,
+  isBinaryData: boolean,
+  options: RequestOptions,
+  status: number,
+  headers: Record<string, string>
+): string | ArrayBuffer {
+  if (isBinaryData) {
+    return buffer
+  } else {
+    if (options.exclude) {
+      return outputBody
+    } else {
+      return JSON.stringify({ status: status, body: outputBody, headers: headers }, null, 2)
+    }
+  }
+}
+
+async function handleSaveOutput(
+  saveData: string | ArrayBuffer,
+  requestPath: string,
+  options: RequestOptions
+): Promise<void> {
+  let filepath: string
+  if (options.output) {
+    filepath = options.output
+  } else {
+    filepath = getFilenameFromPath(requestPath)
+  }
+  try {
+    await saveFile(
+      typeof saveData === 'string' ? new TextEncoder().encode(saveData).buffer : saveData,
+      filepath
+    )
+    console.log(`Saved response to ${filepath}`)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    console.error(`Error saving file: ${error.message}`)
+  }
 }
 
 export function getBuildIterator(
