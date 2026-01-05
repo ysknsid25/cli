@@ -438,7 +438,13 @@ describe('requestCommand', () => {
     ])
 
     expect(mockSaveFile).toHaveBeenCalledWith(
-      new TextEncoder().encode(JSON.stringify({ status: 200, body: jsonBody, headers: { 'content-type': 'application/json' } }, null, 2)).buffer,
+      new TextEncoder().encode(
+        JSON.stringify(
+          { status: 200, body: jsonBody, headers: { 'content-type': 'application/json' } },
+          null,
+          2
+        )
+      ).buffer,
       outputPath
     )
     expect(consoleLogSpy).toHaveBeenCalledWith(`Saved response to ${outputPath}`)
@@ -447,7 +453,9 @@ describe('requestCommand', () => {
   it('should save binary response to specified file with -o option', async () => {
     const mockApp = new Hono()
     const binaryData = new Uint8Array([1, 2, 3, 4, 5]).buffer
-    mockApp.get('/save-binary', (c) => c.body(binaryData, 200, { 'Content-Type': 'application/octet-stream' }))
+    mockApp.get('/save-binary', (c) =>
+      c.body(binaryData, 200, { 'Content-Type': 'application/octet-stream' })
+    )
     setupBasicMocks('test-app.js', mockApp)
 
     const mockSaveFile = vi.mocked((await import('../../utils/file.js')).saveFile)
@@ -477,22 +485,26 @@ describe('requestCommand', () => {
 
     const mockSaveFile = vi.mocked((await import('../../utils/file.js')).saveFile)
     mockSaveFile.mockResolvedValue(undefined)
-    const mockGetFilenameFromPath = vi.mocked((await import('../../utils/file.js')).getFilenameFromPath)
+    const mockGetFilenameFromPath = vi.mocked(
+      (await import('../../utils/file.js')).getFilenameFromPath
+    )
     mockGetFilenameFromPath.mockReturnValue('index.html')
 
-    await program.parseAsync([
-      'node',
-      'test',
-      'request',
-      '-P',
-      '/index.html',
-      '-O',
-      'test-app.js',
-    ])
+    await program.parseAsync(['node', 'test', 'request', '-P', '/index.html', '-O', 'test-app.js'])
 
     expect(mockGetFilenameFromPath).toHaveBeenCalledWith('/index.html')
     expect(mockSaveFile).toHaveBeenCalledWith(
-      new TextEncoder().encode(JSON.stringify({ status: 200, body: htmlContent, headers: { 'content-type': 'text/html; charset=UTF-8' } }, null, 2)).buffer,
+      new TextEncoder().encode(
+        JSON.stringify(
+          {
+            status: 200,
+            body: htmlContent,
+            headers: { 'content-type': 'text/html; charset=UTF-8' },
+          },
+          null,
+          2
+        )
+      ).buffer,
       'index.html'
     )
     expect(consoleLogSpy).toHaveBeenCalledWith(`Saved response to index.html`)
@@ -506,18 +518,12 @@ describe('requestCommand', () => {
 
     const mockSaveFile = vi.mocked((await import('../../utils/file.js')).saveFile)
     mockSaveFile.mockResolvedValue(undefined)
-    const mockGetFilenameFromPath = vi.mocked((await import('../../utils/file.js')).getFilenameFromPath)
+    const mockGetFilenameFromPath = vi.mocked(
+      (await import('../../utils/file.js')).getFilenameFromPath
+    )
     mockGetFilenameFromPath.mockReturnValue('image.png')
 
-    await program.parseAsync([
-      'node',
-      'test',
-      'request',
-      '-P',
-      '/image.png',
-      '-O',
-      'test-app.js',
-    ])
+    await program.parseAsync(['node', 'test', 'request', '-P', '/image.png', '-O', 'test-app.js'])
 
     expect(mockGetFilenameFromPath).toHaveBeenCalledWith('/image.png')
     expect(mockSaveFile).toHaveBeenCalledWith(pngData, 'image.png')
@@ -526,13 +532,15 @@ describe('requestCommand', () => {
 
   it('should prioritize -o over -O when both are present', async () => {
     const mockApp = new Hono()
-    const textContent = 'Text content' 
+    const textContent = 'Text content'
     mockApp.get('/text.txt', (c) => c.text(textContent))
     setupBasicMocks('test-app.js', mockApp)
 
     const mockSaveFile = vi.mocked((await import('../../utils/file.js')).saveFile)
     mockSaveFile.mockResolvedValue(undefined)
-    const mockGetFilenameFromPath = vi.mocked((await import('../../utils/file.js')).getFilenameFromPath)
+    const mockGetFilenameFromPath = vi.mocked(
+      (await import('../../utils/file.js')).getFilenameFromPath
+    )
 
     const outputPath = 'custom-output.txt'
 
@@ -550,7 +558,17 @@ describe('requestCommand', () => {
 
     expect(mockGetFilenameFromPath).not.toHaveBeenCalled()
     expect(mockSaveFile).toHaveBeenCalledWith(
-      new TextEncoder().encode(JSON.stringify({ status: 200, body: textContent, headers: { 'content-type': 'text/plain;charset=UTF-8' } }, null, 2)).buffer,
+      new TextEncoder().encode(
+        JSON.stringify(
+          {
+            status: 200,
+            body: textContent,
+            headers: { 'content-type': 'text/plain;charset=UTF-8' },
+          },
+          null,
+          2
+        )
+      ).buffer,
       outputPath
     )
     expect(consoleLogSpy).toHaveBeenCalledWith(`Saved response to ${outputPath}`)
