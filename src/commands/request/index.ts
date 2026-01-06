@@ -13,7 +13,7 @@ interface RequestOptions {
   header?: string[]
   path?: string
   watch: boolean
-  exclude: boolean
+  json: boolean
   output?: string
   remoteName: boolean
 }
@@ -27,7 +27,7 @@ export function requestCommand(program: Command) {
     .option('-X, --method <method>', 'HTTP method', 'GET')
     .option('-d, --data <data>', 'Request body data')
     .option('-w, --watch', 'Watch for changes and resend request', false)
-    .option('-e, --exclude', 'Exclude protocol response headers in the output', false)
+    .option('-J, --json', 'Output response as JSON', false)
     .option(
       '-H, --header <header>',
       'Custom headers',
@@ -48,7 +48,7 @@ export function requestCommand(program: Command) {
         const outputBody = formatResponseBody(
           result.body,
           result.headers['content-type'],
-          options.exclude
+          options.json
         )
         const buffer = await result.response.clone().arrayBuffer()
         const isBinaryData = isBinaryResponse(buffer)
@@ -87,10 +87,10 @@ function getOutputData(
   if (isBinaryData) {
     return buffer
   } else {
-    if (options.exclude) {
-      return outputBody
-    } else {
+    if (options.json) {
       return JSON.stringify({ status: status, body: outputBody, headers: headers }, null, 2)
+    } else {
+      return outputBody
     }
   }
 }
@@ -200,16 +200,16 @@ export async function executeRequest(
 const formatResponseBody = (
   responseBody: string,
   contentType: string | undefined,
-  excludeOption: boolean
+  jsonOption: boolean
 ): string => {
   switch (contentType) {
     case 'application/json': // expect c.json(data) response
       try {
         const parsedJSON = JSON.parse(responseBody)
-        if (excludeOption) {
-          return JSON.stringify(parsedJSON, null, 2)
+        if (jsonOption) {
+          return parsedJSON
         }
-        return parsedJSON
+        return JSON.stringify(parsedJSON, null, 2)
       } catch {
         console.error('Response indicated JSON content type but failed to parse JSON.')
         return responseBody
