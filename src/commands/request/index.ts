@@ -90,24 +90,25 @@ function getOutputData(
 ): string | ArrayBuffer {
   if (isBinaryData) {
     return buffer
-  } else {
-    const headerLines: string[] = []
-    headerLines.push(`STATUS ${status}`)
-    for (const key in headers) {
-      headerLines.push(`${key}: ${headers[key]}`)
-    }
-    const headerOutput = headerLines.join('\n')
-
-    if (options.head) {
-      return headerOutput + '\n'
-    } else if (options.include) {
-      return headerOutput + '\n\n' + outputBody
-    } else if (options.json) {
-      return JSON.stringify({ status: status, body: outputBody, headers: headers }, null, 2)
-    } else {
-      return outputBody
-    }
   }
+
+  const headerLines: string[] = []
+  headerLines.push(`STATUS ${status}`)
+  for (const key in headers) {
+    headerLines.push(`${key}: ${headers[key]}`)
+  }
+  const headerOutput = headerLines.join('\n')
+  if (options.head) {
+    return headerOutput + '\n'
+  }
+  if (options.include) {
+    return headerOutput + '\n\n' + outputBody
+  }
+
+  if (options.json) {
+    return JSON.stringify({ status: status, body: outputBody, headers: headers }, null, 2)
+  }
+  return outputBody
 }
 
 async function handleSaveOutput(
