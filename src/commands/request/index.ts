@@ -16,6 +16,8 @@ interface RequestOptions {
   json: boolean
   output?: string
   remoteName: boolean
+  include: boolean
+  head: boolean
 }
 
 export function requestCommand(program: Command) {
@@ -38,6 +40,8 @@ export function requestCommand(program: Command) {
     )
     .option('-o, --output <file>', 'Write to file instead of stdout')
     .option('-O, --remote-name', 'Write output to file named as remote file', false)
+    .option('-i, --include', 'Include protocol and headers in the output', false)
+    .option('-I, --head', 'Show only protocol and headers in the output', false)
     .action(async (file: string | undefined, options: RequestOptions) => {
       const doSaveFile = options.output || options.remoteName
       const path = options.path || '/'
@@ -87,7 +91,18 @@ function getOutputData(
   if (isBinaryData) {
     return buffer
   } else {
-    if (options.json) {
+    const headerLines: string[] = []
+    headerLines.push(`STATUS ${status}`)
+    for (const key in headers) {
+      headerLines.push(`${key}: ${headers[key]}`)
+    }
+    const headerOutput = headerLines.join('\n')
+
+    if (options.head) {
+      return headerOutput + '\n'
+    } else if (options.include) {
+      return headerOutput + '\n\n' + outputBody
+    } else if (options.json) {
       return JSON.stringify({ status: status, body: outputBody, headers: headers }, null, 2)
     } else {
       return outputBody

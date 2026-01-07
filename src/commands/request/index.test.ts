@@ -587,4 +587,59 @@ describe('requestCommand', () => {
     )
     expect(consoleLogSpy).toHaveBeenCalledWith(`Saved response to ${outputPath}`)
   })
+
+  it('should include protocol and headers with --include option', async () => {
+    const mockApp = new Hono()
+    const textBody = 'Hello from Hono!'
+    mockApp.get('/text', (c) => c.text(textBody, 200, { 'X-Custom-Header': 'IncludeValue' }))
+    setupBasicMocks('test-app.js', mockApp)
+
+    await program.parseAsync(['node', 'test', 'request', '-P', '/text', '-i', 'test-app.js'])
+
+    const expectedOutput = [
+      'STATUS 200',
+      'content-type: text/plain; charset=UTF-8',
+      'x-custom-header: IncludeValue',
+      '',
+      textBody,
+    ].join('\n')
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expectedOutput)
+  })
+
+  it('should only show protocol and headers with --head option', async () => {
+    const mockApp = new Hono()
+    const textBody = 'Hello from Hono!'
+    mockApp.get('/text', (c) => c.text(textBody, 200, { 'X-Custom-Header': 'HeadValue' }))
+    setupBasicMocks('test-app.js', mockApp)
+
+    await program.parseAsync(['node', 'test', 'request', '-P', '/text', '-I', 'test-app.js'])
+
+    const expectedOutput = [
+      'STATUS 200',
+      'content-type: text/plain; charset=UTF-8',
+      'x-custom-header: HeadValue',
+      '',
+    ].join('\n')
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expectedOutput)
+  })
+
+  it('should prioritize --head over --include when both are present', async () => {
+    const mockApp = new Hono()
+    const textBody = 'Hello from Hono!'
+    mockApp.get('/text', (c) => c.text(textBody, 200, { 'X-Custom-Header': 'PrioritizeValue' }))
+    setupBasicMocks('test-app.js', mockApp)
+
+    await program.parseAsync(['node', 'test', 'request', '-P', '/text', '-i', '-I', 'test-app.js'])
+
+    const expectedOutput = [
+      'STATUS 200',
+      'content-type: text/plain; charset=UTF-8',
+      'x-custom-header: PrioritizeValue',
+      '',
+    ].join('\n')
+
+    expect(consoleLogSpy).toHaveBeenCalledWith(expectedOutput)
+  })
 })
