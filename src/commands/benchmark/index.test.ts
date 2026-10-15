@@ -23,7 +23,13 @@ vi.mock('./engine.js', async (importOriginal) => {
   return { ...original, runBench: vi.fn() }
 })
 
+vi.mock('./save.js', async (importOriginal) => {
+  const original = await importOriginal<typeof SaveModule>()
+  return { ...original, writeSavedResult: vi.fn() }
+})
+
 import type * as EngineModule from './engine.js'
+import type * as SaveModule from './save.js'
 import { benchmarkCommand } from './index.js'
 
 describe('benchmarkCommand', () => {
@@ -41,10 +47,13 @@ describe('benchmarkCommand', () => {
   const getMockBuildAndImportApp = async () =>
     vi.mocked((await import('../../utils/build.js')).buildAndImportApp)
   const getMockRunBench = async () => vi.mocked((await import('./engine.js')).runBench)
+  const getMockWriteSavedResult = async () =>
+    vi.mocked((await import('./save.js')).writeSavedResult)
 
   let mockModules: Awaited<ReturnType<typeof getMockModules>>
   let mockBuildAndImportApp: Awaited<ReturnType<typeof getMockBuildAndImportApp>>
   let mockRunBench: Awaited<ReturnType<typeof getMockRunBench>>
+  let mockWriteSavedResult: Awaited<ReturnType<typeof getMockWriteSavedResult>>
 
   async function* createBuildIterator(app: Hono): AsyncGenerator<Hono> {
     yield app
@@ -76,6 +85,7 @@ describe('benchmarkCommand', () => {
     mockModules = await getMockModules()
     mockBuildAndImportApp = await getMockBuildAndImportApp()
     mockRunBench = await getMockRunBench()
+    mockWriteSavedResult = await getMockWriteSavedResult()
 
     vi.clearAllMocks()
   })
@@ -182,6 +192,75 @@ describe('benchmarkCommand', () => {
     const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0])
     expect(parsed.ok).toBe(false)
     expect(parsed.error.code).toBe('INVALID_OPTION')
+    process.exitCode = undefined
+  })
+
+  it('should save the result of one path with --save', async () => {
+    setupBasicMocks(new Hono())
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'benchmark',
+      '-P',
+      '/',
+      '--save',
+      'bench/root.json',
+      'test-app.js',
+    ])
+
+    expect(mockWriteSavedResult).toHaveBeenCalledWith(`${process.cwd()}/bench/root.json`, {
+      hono: '4.99.0',
+      duration: 500,
+      warmup: 30,
+      ...routeResult,
+    })
+    const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0])
+    expect(parsed.ok).toBe(true)
+    expect(parsed.data.saved).toBe('bench/root.json')
+  })
+
+  it.each([
+    ['no -P', []],
+    ['two -P', ['-P', '/a', '-P', '/b']],
+    ['two --hono', ['-P', '/a', '--hono', '4.12.0', '--hono', '4.13.0']],
+  ])('should reject --save with %s', async (_name, args) => {
+    setupBasicMocks(new Hono())
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'benchmark',
+      ...args,
+      '--save',
+      'bench/a.json',
+      'test-app.js',
+    ])
+
+    const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0])
+    expect(parsed.error.code).toBe('INVALID_OPTION')
+    expect(mockRunBench).not.toHaveBeenCalled()
+    expect(mockWriteSavedResult).not.toHaveBeenCalled()
+    process.exitCode = undefined
+  })
+
+  it('should reject a --save path outside the project before benchmarking', async () => {
+    setupBasicMocks(new Hono())
+
+    await program.parseAsync([
+      'node',
+      'test',
+      'benchmark',
+      '-P',
+      '/',
+      '--save',
+      '../a.json',
+      'test-app.js',
+    ])
+
+    const parsed = JSON.parse(consoleLogSpy.mock.calls[0][0])
+    expect(parsed.error.code).toBe('PATH_OUTSIDE_PROJECT')
+    expect(mockRunBench).not.toHaveBeenCalled()
     process.exitCode = undefined
   })
 })

@@ -332,6 +332,7 @@ hono benchmark [file] [options]
 - `--duration <ms>` - how long to measure each route (default: `500`)
 - `--warmup <count>` - requests before measuring (default: `30`)
 - `--hono <version-or-path>` - benchmark with this Hono instead (can be used multiple times)
+- `--save <file>` - save the result to a JSON file in the project (needs one `-P` path)
 - `--plain` - human-readable output instead of JSON
 - `-e, --external <package>` - Mark package as external (can be used multiple times)
 
@@ -352,6 +353,9 @@ hono benchmark --hono 4.12.3 --hono 4.13.0
 
 # Compare with a local Hono checkout
 hono benchmark --hono ../hono
+
+# Save the result of one path
+hono benchmark -P /users --save bench/users.json
 ```
 
 **Output:**
@@ -379,6 +383,23 @@ hono benchmark --hono ../hono
 ```
 
 `--hono` runs the same app with another Hono: an npm version, or a path to a local package. Use it to compare Hono versions without setting up a benchmark environment. Latency is in milliseconds.
+
+`--save` writes the result of one endpoint to one JSON file, so every saved file has the same shape. The output gets `"saved": "bench/users.json"`. The file looks like this:
+
+```json
+{
+  "hono": "4.13.0",
+  "duration": 500,
+  "warmup": 30,
+  "method": "GET",
+  "path": "/users",
+  "requests": 48210,
+  "rps": 96420,
+  "latency": { "avg": 0.01, "p50": 0.009, "p75": 0.011, "p99": 0.021 }
+}
+```
+
+The path must be inside the project (the current directory). `--save` overwrites only a file it saved before, so other files are never replaced. Headers and body are not saved.
 
 ### `ssg`
 

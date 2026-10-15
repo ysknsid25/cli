@@ -38,7 +38,8 @@
     "@inquirer/select": "^5.2.6",
     "commander": "^14.0.1",
     "esbuild": "^0.25.10",
-    "hono": "^4.9.12 || ^5.0.0-0"
+    "hono": "^4.9.12 || ^5.0.0-0",
+    "pathe": "^2.0.3"
   },
   "devDependencies": {
     "@babel/parser": "^7.28.5",

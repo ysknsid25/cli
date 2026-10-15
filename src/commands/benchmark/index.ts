@@ -1,5 +1,6 @@
 import type { Command } from 'commander'
 import { inspectRoutes } from 'hono/dev'
+import { relative } from 'pathe'
 import { buildAndImportApp } from '../../utils/build.js'
 import type { CommandHelp } from '../../utils/help.js'
 import { renderCommandHelp } from '../../utils/help.js'
@@ -9,6 +10,8 @@ import type { BenchTarget, RouteResult } from './engine.js'
 import { runBench } from './engine.js'
 import type { HonoSource } from './hono-source.js'
 import { projectHonoSource, resolveHonoSource } from './hono-source.js'
+import { resolveResultPath } from './path.js'
+import { writeSavedResult } from './save.js'
 
 const help: CommandHelp = {
   output:
@@ -19,6 +22,7 @@ const help: CommandHelp = {
     `hono benchmark -P /users -X POST -d '{"name":"Alice"}'`,
     'hono benchmark --hono 4.12.3 --hono 4.13.0',
     'hono benchmark --hono ../hono',
+    'hono benchmark -P /users --save bench/users.json',
   ],
   notes: [
     'This is a micro benchmark of routing and handlers. It calls app.request() directly — no HTTP stack, no network.',
@@ -27,6 +31,7 @@ const help: CommandHelp = {
     '-X, -d, and -H set the method, body, and headers for -P paths. The route sweep stays GET only.',
     'A few percent of difference is noise. To compare, run it more than once and check the difference repeats. Run one benchmark at a time — parallel runs share the CPU and skew the numbers.',
     'Latency is in milliseconds.',
+    '--save writes the result of one -P path to a JSON file in the project. It overwrites only a file saved by --save.',
   ],
 }
 
@@ -42,6 +47,7 @@ interface BenchmarkOptions {
   warmup: string
   hono: string[]
   plain: boolean
+  save?: string
   external?: string[]
 }
 
@@ -73,6 +79,7 @@ export function benchmarkCommand(program: Command) {
       collect,
       [] as string[]
     )
+    .option('--save <file>', 'save the result to a JSON file in the project (needs one -P path)')
     .option('--plain', 'human-readable output instead of JSON', false)
     .option(
       '-e, --external <package>',
@@ -102,6 +109,14 @@ export function benchmarkCommand(program: Command) {
           })
         }
 
+        if (options.save !== undefined && (options.path.length !== 1 || options.hono.length > 1)) {
+          throw new CliError('INVALID_OPTION', '--save needs exactly one -P path and one Hono', {
+            suggestions: ['Pass one path: hono benchmark -P /users --save bench/users.json'],
+          })
+        }
+        const savePath =
+          options.save === undefined ? undefined : resolveResultPath(process.cwd(), options.save)
+
         const external = options.external || []
         const entry = await resolveEntry(file)
         const targets = await collectTargets(file, entry, options, method, external)
@@ -123,11 +138,26 @@ export function benchmarkCommand(program: Command) {
             results.push({ hono: source.label, routes })
           }
 
+          let saved: string | undefined
+          if (savePath) {
+            const [result] = results
+            await writeSavedResult(savePath, {
+              hono: result.hono,
+              duration,
+              warmup,
+              ...result.routes[0],
+            })
+            saved = relative(process.cwd(), savePath)
+          }
+
           if (options.plain) {
             printPlainResults(results)
+            if (saved) {
+              console.log(`Saved to ${saved}`)
+            }
             return
           }
-          printResult({ results })
+          printResult(saved ? { results, saved } : { results })
         } finally {
           for (const source of sources) {
             source.cleanup?.()
