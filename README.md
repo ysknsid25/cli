@@ -329,10 +329,11 @@ hono benchmark [file] [options]
 - `-X, --method <method>` - HTTP method for `-P` paths (default: `GET`)
 - `-d, --data <data>` - request body for `-P` paths (`@file` reads a file, `@-` reads stdin)
 - `-H, --header <header>` - custom headers for `-P` paths (can be used multiple times)
-- `--duration <ms>` - how long to measure each route (default: `500`)
+- `--duration <ms>` - how long to measure each route, in milliseconds (default: `500`). A value under `100` adds a `"warning"` to the output
 - `--warmup <count>` - requests before measuring (default: `30`)
 - `--hono <version-or-path>` - benchmark with this Hono instead (can be used multiple times)
 - `--save <file>` - save the result to a JSON file in the project (needs one `-P` path)
+- `--compare <file> [delta] [target]` - compare with a file saved by `--save`
 - `--plain` - human-readable output instead of JSON
 - `-e, --external <package>` - Mark package as external (can be used multiple times)
 
@@ -356,6 +357,12 @@ hono benchmark --hono ../hono
 
 # Save the result of one path
 hono benchmark -P /users --save bench/users.json
+
+# Check that /users is not slower than the saved result
+hono benchmark --compare bench/users.json
+
+# Allow 10% slowdown of p99 latency
+hono benchmark --compare bench/users.json 0.1 latency.p99
 ```
 
 **Output:**
@@ -384,6 +391,8 @@ hono benchmark -P /users --save bench/users.json
 
 `--hono` runs the same app with another Hono: an npm version, or a path to a local package. Use it to compare Hono versions without setting up a benchmark environment. Latency is in milliseconds.
 
+With one `-P` path and no `--save` or `--compare`, the output gets `"hint"`, which points at `--save` and `--compare`. Agents often run `benchmark` without reading `--help`, so the output tells them.
+
 `--save` writes the result of one endpoint to one JSON file, so every saved file has the same shape. The output gets `"saved": "bench/users.json"`. The file looks like this:
 
 ```json
@@ -400,6 +409,29 @@ hono benchmark -P /users --save bench/users.json
 ```
 
 The path must be inside the project (the current directory). `--save` overwrites only a file it saved before, so other files are never replaced. Headers and body are not saved.
+
+`--compare` runs the benchmark again with the method, path, duration, and warmup of a saved file, and checks that it is not slower:
+
+- `delta` - allowed slowdown, from `0` to `1` (default: `0`). `0.1` allows 10%
+- `target` - what to compare: `rps` (default), `requests`, `latency.avg`, `latency.p50`, `latency.p75`, or `latency.p99`
+
+`delta` and `target` can come in any order. Put the app file before `--compare`. `-d` and `-H` work with `--compare`, since the file does not keep headers and body.
+
+The output gets `compare`:
+
+```json
+{
+  "file": "bench/users.json",
+  "target": "rps",
+  "delta": 0.1,
+  "baseline": 96420,
+  "current": 84000,
+  "slowdown": 0.1288,
+  "pass": false
+}
+```
+
+`slowdown` is how much slower the run is than the file: `0.1` is 10% slower, `-0.1` is 10% faster. It means the same for every target. `pass` is `slowdown <= delta`, and the exit code is 1 when it does not pass. Results vary by a few percent between runs, so `delta` 0 fails often. A `delta` of `0.05` to `0.1` is practical.
 
 ### `ssg`
 

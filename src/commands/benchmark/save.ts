@@ -13,7 +13,7 @@ export interface SavedResult extends RouteResult {
   warmup: number
 }
 
-const isSavedResult = (value: unknown): boolean => {
+export const isSavedResult = (value: unknown): value is SavedResult => {
   if (typeof value !== 'object' || value === null) {
     return false
   }
@@ -21,6 +21,9 @@ const isSavedResult = (value: unknown): boolean => {
   return (
     typeof record.method === 'string' &&
     typeof record.path === 'string' &&
+    typeof record.duration === 'number' &&
+    typeof record.warmup === 'number' &&
+    typeof record.requests === 'number' &&
     typeof record.rps === 'number' &&
     typeof record.latency === 'object' &&
     record.latency !== null
