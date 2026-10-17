@@ -23,6 +23,9 @@ importers:
       hono:
         specifier: ^4.9.12 || ^5.0.0-0
         version: 4.13.0
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
     devDependencies:
       '@babel/parser':
         specifier: ^7.28.5
